@@ -28,10 +28,15 @@ export default async function handler(req, res) {
     const tipoLojaId = cli.data.tipo_loja_id;
 
     // Get quotas with reset dates for this store type
-    const cot = await supabaseAdmin
-      .from('cotas')
-      .select('produto_id, quantidade, ultimo_reset')
-      .eq('tipo_loja_id', tipoLojaId);
+    let cot = { data: [] };
+    if (tipoLojaId) {
+      cot = await supabaseAdmin
+        .from('cotas')
+        .select('produto_id, quantidade, ultimo_reset')
+        .eq('tipo_loja_id', tipoLojaId);
+    } else {
+      cot = { data: [] };
+    }
 
     // Build map of reset dates by product
     const resetsMap = new Map();

@@ -57,17 +57,17 @@ async function consumido(tipo_loja_id, resetsMap = null) {
       .select('produto_id, quantidade')
       .in('pedido_id', pedidoIds);
     (itens || []).forEach((i) => map.set(i.produto_id, (map.get(i.produto_id) || 0) + Number(i.quantidade)));
+    
+    // Converter unidades para caixas
+    const boxMap = new Map();
+    const { data: prods } = await supabaseAdmin.from('produtos').select('id, caixa_master');
+    const boxSizeMap = new Map((prods || []).map((p) => [p.id, Number(p.caixa_master) || 1]));
+    map.forEach((qtdUnidades, pid) => {
+      const boxSize = boxSizeMap.get(pid) || 1;
+      boxMap.set(pid, Math.floor(qtdUnidades / boxSize));
+    });
+    return boxMap;
   }
-  
-  // Converter unidades para caixas
-  const boxMap = new Map();
-  const { data: prods } = await supabaseAdmin.from('produtos').select('id, caixa_master');
-  const boxSizeMap = new Map((prods || []).map((p) => [p.id, Number(p.caixa_master) || 1]));
-  map.forEach((qtdUnidades, pid) => {
-    const boxSize = boxSizeMap.get(pid) || 1;
-    boxMap.set(pid, Math.floor(qtdUnidades / boxSize));
-  });
-  return boxMap;
 }
 
 export default async function handler(req, res) {
@@ -116,7 +116,8 @@ export default async function handler(req, res) {
     const query = req.query || {};
     const tipo_loja_id = body.tipo_loja_id ?? query.tipo_loja_id;
     const produto_id = body.produto_id ?? query.produto_id;
-    const all = body.all ?? query.all;
+    const allRaw = body.all ?? query.all;
+    const all = allRaw === true || allRaw === 'true' || allRaw === '1' || allRaw === 1;
 
     if (req.method === 'PUT') {
       if (!tipo_loja_id || !produto_id) return res.status(400).json({ ok: false, error: 'required' });
@@ -147,7 +148,7 @@ export default async function handler(req, res) {
         return res.json({ ok: true });
       }
 
-      if (tipo_loja_id && all === true) {
+      if (tipo_loja_id && all) {
         const { error } = await supabaseAdmin
           .from('cotas')
           .delete()
