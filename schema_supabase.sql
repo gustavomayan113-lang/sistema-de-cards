@@ -86,6 +86,7 @@ declare
   v_produto record;
   v_cliente record;
   v_cota int;
+  v_ultimo_reset timestamptz;
   v_consumido int;
   v_restante int;
   v_preco_caixa_desc numeric(12,2);
@@ -95,7 +96,7 @@ begin
   if jsonb_typeof(p_itens) <> 'array' or jsonb_array_length(p_itens) = 0 then
     raise exception 'Itens inválidos';
   end if;
-  select id, ativo, desconto into v_cliente from clientes where id = p_cliente_id for update;
+  select id, ativo, desconto, tipo_loja_id into v_cliente from clientes where id = p_cliente_id for update;
   if not found then raise exception 'Cliente não encontrado'; end if;
   if v_cliente.ativo is false then raise exception 'Cliente inativo'; end if;
   insert into pedidos (cliente_id) values (p_cliente_id) returning id into v_pedido_id;
@@ -104,9 +105,9 @@ begin
     if not found then raise exception 'Produto não encontrado'; end if;
     if v_produto.ativo is false then raise exception 'Produto inativo'; end if;
     if v_produto.status = 'INDISPONÍVEL' then raise exception 'Produto indisponível'; end if;
-    select quantidade into v_cota from cotas where cliente_id = p_cliente_id and produto_id = v_produto.id;
+    select quantidade, ultimo_reset into v_cota, v_ultimo_reset from cotas where tipo_loja_id = v_cliente.tipo_loja_id and produto_id = v_produto.id;
     if v_cota is not null and v_cota = 0 then raise exception 'Produto bloqueado para este cliente'; end if;
-    select coalesce(sum(pi.quantidade), 0) into v_consumido from pedido_itens pi join pedidos p on p.id = pi.pedido_id where p.cliente_id = p_cliente_id and pi.produto_id = v_produto.id;
+    select coalesce(sum(pi.quantidade), 0) into v_consumido from pedido_itens pi join pedidos p on p.id = pi.pedido_id where p.cliente_id = p_cliente_id and pi.produto_id = v_produto.id and (v_ultimo_reset is null or p.criado_em >= v_ultimo_reset);
     if v_cota is not null then
       v_restante := v_cota - v_consumido;
       if v_restante < v_item.quantidade then raise exception 'Quantidade acima da cota disponível para o produto'; end if;
