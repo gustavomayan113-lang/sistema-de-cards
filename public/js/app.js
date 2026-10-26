@@ -398,7 +398,6 @@ function viewLoja() {
    ===================================================================== */
 const doneHtml = () => `<div class="tc-modal-bg" data-act="closeDone"><div class="tc-modal" role="dialog" aria-modal="true" style="text-align:center"><h3>Pedido #${esc(S.done.id)} registrado</h3><p style="color:var(--mute)">${S.done.url ? "Agora envie o resumo para o vendedor combinar entrega e pagamento." : "O WhatsApp do vendedor ainda não foi configurado. Avise o vendedor sobre o pedido."}</p><div class="tc-foot" style="justify-content:center">${S.done.url ? `<a class="tc-btn" href="${esc(S.done.url)}" target="_blank" rel="noopener" style="text-decoration:none">Abrir WhatsApp</a>` : ""}<button class="tc-btn ghost" data-act="closeDone">Fechar</button></div></div></div>`;
 
-''
 
 function render() {
   const f = document.activeElement, key = f && f.dataset && f.dataset.bind, pos = f && f.selectionStart;
@@ -519,7 +518,6 @@ const A = {
   openCart() { S.cartOpen = true; render(); },
   closeCart() { S.cartOpen = false; render(); },
   clearCart() { S.cart = {}; S.cartOpen = false; render(); },
-''
 async finish() {
     const itens = Object.entries(S.cart).map(([id, quantidade]) => ({ produto_id: Number(id), quantidade }));
     console.log('[finish] itens no carrinho:', itens);
