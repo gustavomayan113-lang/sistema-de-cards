@@ -91,9 +91,6 @@ declare
   v_item record;
   v_produto record;
   v_cliente record;
-  v_cota int;
-  v_consumido int;
-  v_restante int;
   v_box_size int;
   v_preco_caixa_desc numeric(12,2);
   v_preco_unit numeric(12,2);
@@ -136,37 +133,11 @@ begin
       raise exception 'Produto inativo';
     end if;
 
-    if v_produto.status = 'INDISPONíVEL' then
+    if v_produto.status = 'INDISPONÍVEL' then
       raise exception 'Produto indisponível';
     end if;
 
-    select quantidade into v_cota
-    from cotas
-    where tipo_loja_id = v_cliente.tipo_loja_id
-      and produto_id = v_produto.id;
-
-    if v_cota is not null and v_cota = 0 then
-      raise exception 'Produto bloqueado para este cliente';
-    end if;
-
     v_box_size := coalesce(v_produto.caixa_master, 1);
-
-    select coalesce(sum(floor(pi.quantidade / v_box_size)), 0)
-    into v_consumido
-    from pedido_itens pi
-    join pedidos p on p.id = pi.pedido_id
-    where p.cliente_id = p_cliente_id
-    and pi.produto_id = v_produto.id;
-
-    if v_cota is not null then
-      v_restante := v_cota - v_consumido;
-      if v_restante <= 0 then
-        raise exception 'Produto sem cota disponível';
-      end if;
-      if v_restante < v_item.quantidade then
-        raise exception 'Quantidade acima da cota disponível para o produto';
-      end if;
-    end if;
 
     v_preco_caixa_desc := v_produto.preco_caixa_master * (1 - (v_cliente.desconto/100.0));
     v_preco_unit := case when v_produto.caixa_master is null or v_produto.caixa_master <= 0
